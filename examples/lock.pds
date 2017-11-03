@@ -1,0 +1,32 @@
+# Lock/unlock example from the thesis (PDS version)
+#
+# Running "moped -rt lock.pds q:err" should yield a "NO" answer,
+# meaning that the error state cannot be reached.
+
+global bool l,r;
+local (g0) bool x;
+local (main0,main1,main2,main3,main3a,main4,main5) bool a,b;
+
+(q <main0>)
+
+q <lock0> --> q <err>		(l & l')
+q <lock0> --> q <lock1>		(!l & !l')
+q <lock1> --> q <lock2>		(l')
+q <err> --> q <err>		(l'==l)
+
+q <unlock0> --> q <err>		(!l & !l')
+q <unlock0> --> q <unlock1>	(l & l')
+q <unlock2> --> q <>		(!l')
+
+q <g0> --> q <>			((l'==l) & r'^x)
+
+q <main0> --> q <main1>		(!l' & !a' & (b'==b))
+q <main2> --> q <lock0 main3>	((l'==l) & (a''==a) & (b''==b))
+q <main3> --> q <g0 main3a>	((l'==l) & (x'==a) & (a''==a) & (b''==b))
+q <main3a> --> q <main4>	((l'==l) & (a'==a) & (b'==r))
+q <main4> --> q <unlock0 main5>	((l'==l) & (a''==a)  & (b''==b))
+
+q <main1> --> q <main2>		((l'==l) & (a'==a) & (b'==b))
+q <main5> --> q <>		(l'==l)
+q <lock2> --> q <>		(l'==l)
+q <unlock1> --> q <unlock2>	(l'==l)

@@ -1,0 +1,70 @@
+# This example simulates the Quicksort procedure shown at the end of the file.
+# The pushdown abstracts from the data in the array. Hence, the set of
+# possible executions is over-approximated.
+#
+# Using moped we can prove that the procedure terminates for all
+# possible inputs (strictly speaking, for all inputs with 2^N or
+# less elements in the array).
+# 
+#	moped quicksort_correct.pds "<>main1"
+#
+# should answer YES (i.e. in all possible executions the Quicksort
+# procedure eventually terminates and returns to main).
+
+
+define N 3	# number of bits used to represent each integer variable
+
+local(qs0,qs1,qs2,qs3) int left(N), eq(N), lo(N), hi(N), right(N);
+
+(q <main0>)
+
+q <main0> --> q <qs0 main1>
+q <main1> --> q <main1>
+
+q <qs0> --> q <>		"reject"  (left >= right)
+q <qs0> --> q <qs1>		(left < right & left' = left & right' = right
+				      & eq' = left & lo' = left & hi' = right)
+q <qs1> --> q <qs1>		"decrease hi"
+				(lo <= hi & (hi != right | lo != left)
+				      & eq' = eq & lo' = lo & hi' = hi-1
+				      & left' = left & right' = right)
+q <qs1> --> q <qs1>		"increase lo + eq"
+				(lo <= hi & (hi != right | lo != left)
+				      & eq' = eq+1 & lo' = lo+1 & hi' = hi
+				      & left' = left & right' = right)
+q <qs1> --> q <qs1>		"increase lo"
+				(lo <= hi & eq' = eq & lo' = lo+1 & hi' = hi
+				      & left' = left & right' = right)
+q <qs1> --> q <qs0 qs2>		"left recursive call"
+				(lo = hi+1 & left' = left & right' = eq-1
+				      & lo'' = lo & right'' = right)
+q <qs2> --> q <qs0 qs3>		"right recursive call"
+				(left' = lo & right' = right)
+q <qs3> --> q <>
+
+
+# Corresponding procedure in C syntax:
+#
+# void qs(int left,int right)
+# {
+#     int eq,lo,hi,piv,tmp;
+#
+#     if (left >= right) return;
+#     piv = a[right]; lo = eq = left; hi = right;
+#     while (lo <= hi)
+#     {
+#         if (a[hi] > piv) hi--;
+#         else
+#         {
+#             tmp = a[lo], a[lo] = a[hi], a[hi] = tmp;
+#             if (a[lo] < piv)
+#             {
+#                 tmp = a[eq], a[eq] = a[lo], a[lo] = tmp;
+#                 eq++;
+#             }
+#             lo++;
+#         }
+#     }
+#     qs(left,eq-1);
+#     qs(lo,right);
+# }

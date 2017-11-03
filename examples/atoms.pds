@@ -1,0 +1,17 @@
+# This is an example for the new atoms feature of Moped.
+# Atoms are declared between the initial configuration and the transitions.
+# Each atoms declaration containes the keyword "atoms", then an identifier
+# (presumably a stack symbol), then a list of atomic propositions that this
+# stack symbol satisfies. It is not necessary to declare these atomic
+# propositions anywhere.
+
+# In the example below, Moped should answer YES to the query "[]p",
+# NO to "[]q", YES to "[]<>q" etc.
+
+(Q <l1>)
+
+atoms l1 p,q
+atoms l2 p
+
+Q <l1> --> Q <l2>
+Q <l2> --> Q <l1>

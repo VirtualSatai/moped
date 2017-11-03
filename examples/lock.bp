@@ -1,0 +1,34 @@
+// Lock/unlock example from the thesis (BP version)
+
+decl l;
+
+void error ()
+begin
+	E: goto E;
+end
+
+void lock ()
+begin
+	if (l) then error(); fi
+	l := T;
+end
+
+void unlock ()
+begin
+	if (!l) then error(); fi
+	l := F;
+end
+
+bool g (x)
+begin
+	return !x;
+end
+
+void main ()
+begin
+	decl a,b;
+	l,a := F,F;
+	lock();
+	b := g(a);
+	unlock();
+end

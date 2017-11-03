@@ -1,0 +1,87 @@
+# This example simulates the Quicksort procedure shown at the end of the file.
+# Unlike the quicksort_correct example, this model includes the actual array
+# contents which can be numbers between 0 and 2^N-1.
+# When the sorting procedure terminates, we check whether the array was sorted
+# correctly (at label main1). We can thus verify both correctness of sorting
+# and termination with the following invocation.
+# 
+#	moped quicksort_withvars.pds "<>ok"
+#
+# (expected answer is YES).
+
+
+define N 3		# number of bits used to represent integer variables
+define M (1<<N)-2	# number of elements in the array
+define K N		# site of array elements
+
+global int a[1,M](K);
+local(qs0,qs1,qs2,qs3) int left(N), right(N), eq(N), lo(N), hi(N), piv(K);
+
+(q <main0>)
+
+q <main0> --> q <qs0 main1>	(left'=1 & right'=M)
+q <main1> --> q <error>		(E i (1,M-1) a[i] > a[i+1])
+q <error> --> q <error>
+q <main1> --> q <ok>		(A i (1,M-1) a[i] <= a[i+1])
+q <ok> --> q <ok>
+
+q <qs0> --> q <>		"reject"  (left >= right
+					& A i (1,M) a'[i]=a[i])
+q <qs0> --> q <qs1>		(left < right & left' = left & right' = right
+				      & eq' = left & lo' = left & hi' = right
+					& piv' = a[right]
+					& A i (1,M) a'[i]=a[i])
+q <qs1> --> q <qs1>		"decrease hi"
+				(lo <= hi & a[hi] > piv
+				      & eq' = eq & lo' = lo & hi' = hi-1
+				      & left' = left & right' = right
+					& piv'=piv & A i (1,M) a'[i]=a[i])
+q <qs1> --> q <qs1>		"increase lo + eq"
+				(lo <= hi & a[hi] < piv
+				      & eq' = eq+1 & lo' = lo+1 & hi' = hi
+				      & left' = left & right' = right
+				& piv' = piv
+				& (A i (1,M) (i=eq | i=lo | i=hi | a'[i]=a[i]))
+				& a'[eq]=a[hi] & a'[lo]=a[eq] & a'[hi]=a[lo])
+q <qs1> --> q <qs1>		"increase lo"
+				(lo <= hi & a[hi] = piv
+				      & eq' = eq & lo' = lo+1 & hi' = hi
+				      & left' = left & right' = right
+					& piv' = piv
+				& (A i (1,M) (i = lo | i = hi | a'[i]=a[i]))
+				& a'[lo] = a[hi] & a'[hi] = a[lo])
+q <qs1> --> q <qs0 qs2>		"left recursive call"
+				(lo = hi+1 & left' = left & right' = eq-1
+				      & lo'' = lo & right'' = right
+					& A i (1,M) a'[i]=a[i])
+q <qs2> --> q <qs0 qs3>		"right recursive call"
+				(left' = lo & right' = right
+					& A i (1,M) a'[i]=a[i])
+q <qs3> --> q <>		(A i (1,M) a'[i]=a[i])
+
+
+# Corresponding procedure in C syntax:
+#
+# void qs(int left,int right)
+# {
+#     int eq,lo,hi,piv,tmp;
+#
+#     if (left >= right) return;
+#     piv = a[right]; lo = eq = left; hi = right;
+#     while (lo <= hi)
+#     {
+#         if (a[hi] > piv) hi--;
+#         else
+#         {
+#             tmp = a[lo], a[lo] = a[hi], a[hi] = tmp;
+#             if (a[lo] < piv)
+#             {
+#                 tmp = a[eq], a[eq] = a[lo], a[lo] = tmp;
+#                 eq++;
+#             }
+#             lo++;
+#         }
+#     }
+#     qs(left,eq-1);
+#     qs(lo,right);
+# }

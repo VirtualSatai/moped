@@ -1,0 +1,77 @@
+# This example simulates the Heapify procedure: a given array of integers
+# is converted into a `heap' - a tree where each internal node is smaller
+# than its children. (The tree is simulated in an array by assuming that
+# the children of element i are located at 2*i and 2*i+1.) When the pro-
+# cedure terminates, we check whether the resulting array has indeed the
+# heap property.
+#
+# Using Moped we can check that the program is correct and terminates
+# in every case:
+#	moped heapify.pds "<>ok"
+
+
+define D 2		# depth of tree
+define K 2		# num of bits for tree elements
+
+define M (2<<D)-1	# num of entries in tree
+define N D+2		# num of bits for indices
+
+global int a[M](K);
+local(hfy0,hfy1,hfy2,hfy3) int n(N);
+local(adj0,adj1) int n(N);
+local(chk0,chk1,chk2) int n(N);
+
+(q <main0>)
+
+q <main0> --> q <hfy0 main1>	"start heapify"
+				(n' = 0 & A i (0,M-1) a'[i] = a[i])
+q <main1> --> q <chk0 ok>	"check if correct"
+				(n' = 0 & A i (0,M-1) a'[i] = a[i])
+q <ok> --> q <ok>
+
+
+q <hfy0> --> q <>		"heapify: leaf"
+				(2*n+1 >= M & A i (0,M-1) a'[i] = a[i])
+q <hfy0> --> q <hfy0 hfy1>	(2*n+1 < M &
+				 n' = 2*n+1 & n''=n & A i (0,M-1) a'[i] = a[i])
+q <hfy1> --> q <hfy0 hfy2>	(n' = 2*n+2 & n''=n & A i (0,M-1) a'[i] = a[i])
+q <hfy2> --> q <adj0 hfy3>	"start adjust"
+				(n' = n & n'' = n & A i (0,M-1) a'[i] = a[i])
+q <hfy3> --> q <>		(A i (0,M-1) a'[i] = a[i])
+
+q <adj0> --> q <>		"adjust: leaf"
+				(2*n+1 >= M & A i (0,M-1) a'[i] = a[i])
+q <adj0> --> q <>		"adjust: ok"
+				(2*n+1 < M
+				    & a[n] >= a[2*n+1] & a[n] >= a[2*n+2]
+				    & A i (0,M-1) a'[i] = a[i])
+q <adj0> --> q <adj0 adj1>	"adjust: balance left side"
+				(2*n+1 < M
+				    & a[2*n+1] >= a[n] & a[2*n+1] >= a[2*n+2]
+				    & a'[2*n+1] = a[n] & a'[n] = a[2*n+1]
+				    & n' = 2*n+1 & n'' = n
+				    & A i (0,M-1) (a'[i] = a[i]
+					| i = n | i = 2*n+1))
+q <adj0> --> q <adj0 adj1>	"adjust: balance right side"
+				(2*n+1 < M
+				    & a[2*n+2] >= a[n] & a[2*n+2] >= a[2*n+1]
+				    & a'[2*n+2] = a[n] & a'[n] = a[2*n+2]
+				    & n' = 2*n+2 & n'' = n
+				    & A i (0,M-1) (a'[i] = a[i]
+					| i = n | i = 2*n+2))
+
+q <adj1> --> q <>		(A i (0,M-1) a'[i] = a[i])
+
+q <chk0> --> q <>		"check: leaf"
+				(2*n+1 >= M & A i (0,M-1) a'[i] = a[i])
+q <chk0> --> q <error>		"not ordered"
+				(2*n+1 < M
+				    & (a[n] < a[2*n+1] | a[n] < a[2*n+2]))
+q <chk0> --> q <chk0 chk1>	(2*n+1 < M & a[n] >= a[2*n+1] & a[n] >= a[2*n+2]
+				    & n' = 2*n+1 & n'' = n
+				    & A i (0,M-1) a'[i] = a[i])
+q <chk1> --> q <chk0 chk2>	(n' = 2*n+2 & n'' = n
+				    & A i (0,M-1) a'[i] = a[i])
+q <chk2> --> q <>		(A i (0,M-1) a'[i] = a[i])
+
+q <error> --> q <error>

@@ -1,0 +1,246 @@
+This archive contains the source code for the model-checker Moped.
+
+Moped is a combined LTL and reachability checker for pushdown systems.
+Roughly speaking, the expressive power of pushdown systems is equivalent
+to that of programs with (possibly recursive) procedures where all variables
+have a finite data type. Moped can also process Boolean Programs and interact
+with the SLAM toolkit.
+
+This document will tell you how to compile the checker (see the sections
+"Prerequisites" and "Building"), and how to use it (see the "Usage" and
+"Input formats" section). If you plan to use Moped within the Slam toolkit,
+see also the "Moped and Boolean programs" section at the end of the file.
+
+
+** Prerequisites **
+
+To compile, you will need the CUDD library by Fabio Somenzi.
+CUDD can be found here:
+	http://vlsi.colorado.edu/~fabio/
+
+To use LTL model checking, you will also need an executable of Spin
+(which Moped uses to translate LTL formulae into Buechi automata).
+Pointers to Spin downloads can be found here:
+	http://netlib.bell-labs.com/netlib/spin/whatispin.html
+
+Moped will look for Spin in the following directories (in this order):
+the directory specified in the SPINDIR environment variable, the directory
+that Moped itself is in, or any directory listed in the PATH variable.
+If you are in doubt which executable Moped is using, use Moped with the
+-s3 option.
+
+
+** Building **
+
+To build on a Unix machine, first edit the Makefile and adjust the
+path to the CUDD library files in the first few lines. Then "make"
+should build the moped binary. Use gmake if possible.
+
+The code has been compiled and run under both gcc and Visual C++
+and tested with CUDD versions 2.3.0 and 2.3.1 and various versions
+of Spin.
+
+
+** Usage **
+
+The usage of the checker is as follows:
+
+	moped <modelfile> <formula> [-<options>]
+
+<modelfile> should be either a pushdown system (see the .pds files in
+examples) or a boolean program. To use boolean programs, use the -b option.
+
+<formula> is either an LTL formula (in Spin's syntax) or a reachability
+formula. To check for reachability, use the -r option. For pushdown systems,
+a reachability formula has the form state:stacksymbol, for boolean programs
+it is simply a label within the program.
+
+The options of moped are as follows:
+ 
+-a: Enable automatic variable reordering within the CUDD routines.
+    It is not normally recommended to use this since the reorderings
+    take very long. Use -aa to enable auto-reordering only during
+    the phase when the modelfile is read and the pushdown system built,
+    and disable it during the actual model-checking.
+    See also the -m options.
+
+-b: Take a boolean program as input (default is pushdown system).
+    -b will automatically select -m7v2e0 by default.
+
+-c: Choose method for finding repeating heads.
+    -cT: Preprocess by removing trivially irreversible transitions (default).
+    -cN: Do not remove trivially irreversible transitions.
+    -cC: Compute cycles with transitive closure method.
+    -cE: Compute cycles with Emerson-Lei method.
+    -cO: Compute cycles with OWCTY method (default).
+    -cX: Compute cycles with Xie-Beerel method.
+    Multiple letters can be combined as in, e.g., -cEN.
+
+-e0,-e1: Moped has two slightly different encodings for Boolean Programs into
+    pushdown systems. Encoding 0 is the default, encoding 1 works faster with
+    backwards reachability checks (-pB); however, forward reachability works
+    faster in most cases anyway.
+
+-f: Normally, Moped translates the negation of <formula> into a Büchi automaton
+    using Spin. If this option is used, Moped will interpret <formula> as the
+    name of a file that contains a Büchi automaton, and will use this instead.
+    The file should be produced by Spin, or at least its syntax should be
+    compatible with that of Spin.
+
+-D: Can be used to override `define'd values in pushdown systems; e.g. in the
+    quicksort_error example use -DN=4 or -DN=5 to set N to different values.
+
+-m0,-m1,-m2: Set various variable orderings. For pushdown systems,
+    -m0 or -m1 are recommended (-m0 is default). For boolean programs,
+    -m2 (default) is recommended.
+
+-o: Dead variable elimination and mod/ref analysis (useful only for
+    Boolean Programs, otherwise ignored).
+    -o0: Do not use any optimizations (default).
+    -o1: Perform a mod/ref analysis on the global variables.
+    -o2: Perform a full ``live range'' analysis for all local variables.
+    -o3: Use both optimizations (equivalent to just -o).
+    Do not use -o together with trace generation for Newton or XML.
+
+-p: The checker has two different algorithms, one of them works with backward
+    search (pre*), the other with forward search (post*). Using the post*
+    method is the default as it is faster on most examples. Also, the search
+    can be exhaustive (computes all reachable states) or "demand-driven"
+    (stops as soon as the yes/no result is known).
+    -pF: search forwards (use post*), formerly -p1 or -p2 (default)
+    -pB: search backwards (use pre*), formerly -p0
+    -pE: exhaustive search, formerly -p0 or -p1
+    -pD: "demand" search, quit when result known, formerly -p2; (default)
+	 this option is effective for both types of reachability queries;
+	 for LTL queries it is effective only for forward search.
+    Multiple letters can be combined as in, e.g., -pFD.
+
+-q0, -q1: Use depth-first (-q0, default) or breadth-first (-q1) queueing
+    strategy for worklist when computing reachability.
+
+-r: Check for reachability instead of LTL. See above for format of
+    reachability formulas. Moped can also print the automaton which
+    represents the reachable configurations
+	-r or -r0: check reachability only, do not print automaton
+	-r1: print the reachable state automaton without BDDs
+	-r2: print the BDDs, too, but without stack contents
+	-r3: print the complete BDDs
+
+-s0 ... -s3: Set verbosity level.
+    -s0: silent; output only a YES/NO answer and a trace, if applicable.
+    -s1: additionally print progress and timing reports (default).
+    -s2: additionally print BDD statistics at the end.
+    -s3 and higher: for debugging purposes.
+
+-t: Output a counterexample (LTL) or a trace to the error label (reachability).
+    -tP outputs a trace of the pushdown system.
+    -tN outputs a newton style trace.
+    -tX outputs an XML trace.
+
+-v0 ... -v2: This determines how BDD variables are related to variables in
+    the pushdown system/boolean program. -v0 (default for pushdown systems)
+    minimizes the number of BDD variables (ok for small programs). -v1 assigns
+    one BDD variable to each program variable (like in bebop). -v2 (default for
+    boolean programs) allocates one BDD variable per different variable name.
+
+
+** Input formats **
+
+For pushdown systems, the supplied examples will give you an idea of the
+syntax. In general, the files start with the defines (see the -D option),
+then the variable declarations (globals, locals), then the initial
+configuration (restricted to stack of length one), and finally the pushdown
+rules. The right-hand side of the rules has length at most 2. Variable
+relations (which are translated into a BDD can be added in parentheses;
+here unprimed names refer to the left-hand side of the rule, singly primed
+names to the right hand side control location and the first stack symbol,
+and doubly primed names to the second stack symbol (if there is one).
+The parser is not very robust and might output confusing error messages
+at times - sorry about that.
+
+For Boolean Programs, see the information provided at the SLAM homepage.
+
+
+** Moped and Boolean programs **
+
+The Slam toolkit (http://research.microsoft.com/slam/) aims to check
+behavioural properties of (large) programs written in C. It works as
+an iterative process where each round consists of deriving an abstraction,
+checking the abstraction, and testing if error traces found during the
+checking are true errors spurious ones (caused by imprecise abstraction).
+The checking is done by a reachability checker called Bebop. Moped can act
+as a replacement for Bebop. At the time of writing, Moped has performance
+advantages over Bebop and can help speed up the Slam process.
+
+Moped can easily be integrated in the SLAM process by 1) installing
+SLAM, and 2) putting the Moped executable moped.exe in your path. 
+When you execute the SLAM program slam.exe you must add a couple of extra
+flags to tell SLAM to use Moped instead of Bebop. The actual flags
+are described in the SLAM documentation.
+
+To run Moped on a Boolean Program (say, slam.bp) and test whether a certain
+label within the program is reachable, say:
+	moped -bro slam.bp <label>
+
+To generate an error trace that can be processed by the Newton tool, say
+	moped -brtN slam.bp <label>
+This is the standard mode of operation within the Slam process. Do not
+use the -o option as the resulting output may confuse Newton.
+
+To generate an error trace that can be processed by the Slam's GUI, say
+	moped -brtX slam.bp <label>
+
+
+** History **
+
+17.01.2002: Version 1.0.0, initial release
+11.02.2002: Version 1.0.1, fixed spin executable required in current directory
+11.02.2002: Version 1.0.2, fixed problem with using labels in a BP as predicates
+				in an LTL formula
+12.03.2002: Version 1.0.3, fixed a bug in error trace generation
+09.04.2002: Minor changes to witness generation code
+18.06.2002: Overhaul of the options:
+		-s, -v, -y combined to -s<n>
+		-e, -g, -o combined to -o<n>
+		made -p2 default
+		-V renamed to -v
+		changed -m3 to -m0, -m4 to -m1, -m7 to -m2, removed all others
+		new methods for finding cycles and new syntax for options (-c)
+	    Fixed bug in trace generation for LTL (reported by Reid Simmons)
+            New, Windows-compatible Makefile thanks to Jakob Lichtenberg
+29.07.2002: Expanded -r switch, see above
+07.08.2002: Added properties over variables
+	    removed -F option
+07.10.2002: Added enforce condition of main function in a boolean program to
+		the initial condition (thanks Roderick Bloem for the bug report)
+	    Version 1.0.7 released
+07.03.2003: Improved backward reachability queries, -p option changed, see above
+	    Added a different encoding for Boolean Program, selectable by -e<n>
+		(the new encoding makes backwards reachability faster).
+	    Fixed a number of bugs thanks to David Melski's reports:
+		* error in LTL checking when properties were single letters
+		* fixed two more bugs in trace generation (yet again)
+		* parsing problems for LTL formulas (operator priorities)
+08.08.2003: Version 1.0.9: some bugfixes, and optimizations when building
+		BDDs from expressions, thanks to Changhao Jiang for the reports
+		New binary version for Cygwin
+03.12.2003: Version 1.0.10: fixed a bug for some reachability examples,
+		thanks to Bjorn H. Bjornsson for the report.
+07.01.2004: Version 1.0.11: fixed a bug when using -r[123] (the checker would
+		erroneously report NO instead of YES, thanks to Vinod Ganapathy
+		for the report).
+28.04.2004: Moped mistakenly refused to allow 0 as the lower bound of an
+		array; fixed.
+14.06.2004: Allowed "." in identifiers.
+15.06.2004: Fixed division by zero error (reported by Dejvuth Suwimonteerabuth).
+24.06.2004: Fixed a problem with the LTL parser
+08.10.2004: Fixed a segfault when checking LTL on Boolean programs
+		(reported by Swarat Chaudhuri).
+18.10.2004: Put the option to use pre-computed Büchi automata back in, now -f
+30.11.2004: Added curly brackets for integer expressions
+11.01.2005: Fixed some BDD reference-counting bugs (reported by Pierre Ganty).
+31.03.2005: Fixed a bug when printing rule labels (reported by Remy).
+18.04.2005: Version 1.0.13 released
+22.07.2008: Fixed a bug in bpSpecial.c (reported by Salvatore LaTorre).
+06.11.2009: Added the atoms feature (see examples/atoms.pds),
+		proposed by Dilian Gurov.

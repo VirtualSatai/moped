@@ -1,0 +1,52 @@
+# Like quicksort_withvars, but with non-deterministic selection of the pivot
+# element.
+
+define N 3		# number of bits used to represent integer variables
+define M (1<<N)-2	# number of elements in the array
+define K N		# site of array elements
+
+global int a[1,M](K);
+local(qs0,qs1,qs2,qs3) int left(N), right(N), eq(N), lo(N), hi(N), piv(K);
+
+(q <main0>)
+
+q <main0> --> q <qs0 main1>	(left'=1 & right'=M)
+q <main1> --> q <error>		(E i (1,M-1) a[i] > a[i+1])
+q <error> --> q <error>
+q <main1> --> q <ok>		(A i (1,M-1) a[i] <= a[i+1])
+q <ok> --> q <ok>
+
+q <qs0> --> q <>		"reject"  (left >= right
+					& A i (1,M) a'[i]=a[i])
+q <qs0> --> q <qs1>		(left < right & left' = left & right' = right
+				      & eq' = left & lo' = left & hi' = right
+					& (E i (1,M) (i>=left & i<=right
+						& piv' = a[i]))
+					& A i (1,M) a'[i]=a[i])
+q <qs1> --> q <qs1>		"decrease hi"
+				(lo <= hi & a[hi] > piv
+				      & eq' = eq & lo' = lo & hi' = hi-1
+				      & left' = left & right' = right
+					& piv'=piv & A i (1,M) a'[i]=a[i])
+q <qs1> --> q <qs1>		"increase lo + eq"
+				(lo <= hi & a[hi] < piv
+				      & eq' = eq+1 & lo' = lo+1 & hi' = hi
+				      & left' = left & right' = right
+				& piv' = piv
+				& (A i (1,M) (i=eq | i=lo | i=hi | a'[i]=a[i]))
+				& a'[eq]=a[hi] & a'[lo]=a[eq] & a'[hi]=a[lo])
+q <qs1> --> q <qs1>		"increase lo"
+				(lo <= hi & a[hi] = piv
+				      & eq' = eq & lo' = lo+1 & hi' = hi
+				      & left' = left & right' = right
+					& piv' = piv
+				& (A i (1,M) (i = lo | i = hi | a'[i]=a[i]))
+				& a'[lo] = a[hi] & a'[hi] = a[lo])
+q <qs1> --> q <qs0 qs2>		"left recursive call"
+				(lo = hi+1 & left' = left & right' = eq-1
+				      & lo'' = lo & right'' = right
+					& A i (1,M) a'[i]=a[i])
+q <qs2> --> q <qs0 qs3>		"right recursive call"
+				(left' = lo & right' = right
+					& A i (1,M) a'[i]=a[i])
+q <qs3> --> q <>		(A i (1,M) a'[i]=a[i])
