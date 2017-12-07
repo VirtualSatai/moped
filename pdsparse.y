@@ -9,7 +9,7 @@
 #include "ftree.h"
 #include "expr.h"
 
-int pdslineno = 1;
+extern int pdslineno;
 int pds_p1, pds_y1, pds_p2, pds_y2, pds_y3;
 int pp_current_label;
 int pdslex();

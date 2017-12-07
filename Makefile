@@ -1,5 +1,5 @@
 # Cudd stuff:
-CUDDVER = cudd-2.4.1
+CUDDVER = cudd-2.5.1
 CUDDINCLUDEDIR=$(HOME)/$(CUDDVER)/include
 CUDDLIBDIR=$(HOME)/$(CUDDVER)/lib
 CUDDLIBS=cudd mtr st util epd
@@ -16,7 +16,7 @@ else # POSIX
   CCINCLUDEDIR = ""
   CC = gcc -g -O3 -Wall -I$(CUDDINCLUDEDIR) #-DYYDEBUG
   LINK=$(CC)
-  LIBS =  -L$(CUDDLIBDIR) -lm $(patsubst %,-l%,$(CUDDLIBS))
+  LIBS =  -L$(CUDDLIBDIR) $(patsubst %,-l%,$(CUDDLIBS)) -lm
   O = o
 endif
 
@@ -67,14 +67,14 @@ ltlparse.c: ltlparse.y ltllex.c
 	bison ltlparse.y -p ltl -o $@
 ltllex.c: ltllex.l
 	flex -t -Pltl ltllex.l | \
-	sed 's/getc( yyin )) != EOF/*ltlstr) \&\& (ltlstr += !!*ltlstr)/g' > $@
+	sed 's/getc( ltlin )) != EOF/*ltlstr) \&\& (ltlstr += !!*ltlstr)/g' > $@
 
 prop.$(O): prop.c proplex.c
 prop.c: prop.y proplex.c
 	bison prop.y -p prop -o $@
 proplex.c: proplex.l
 	flex -t -Pprop proplex.l | \
-	sed 's/getc( yyin )) != EOF/*propstr) \&\& (propstr += !!*propstr)/g'>$@
+	sed 's/getc( propin )) != EOF/*propstr) \&\& (propstr += !!*propstr)/g'>$@
 
 # clean
 

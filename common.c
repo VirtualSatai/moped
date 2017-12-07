@@ -99,9 +99,9 @@ float common_time_getseconds()
 	struct tms time_current;
 	times(&time_current);
   #ifdef __CYGWIN__
-	return (float) time_current.tms_utime * CLK_TCK / 1000000.0;
+	return (float) time_current.tms_utime * CLOCKS_PER_SEC / 1000000.0;
   #else
-	return (float) time_current.tms_utime * CLK_TCK / 10000.0;
+	return (float) time_current.tms_utime * CLOCKS_PER_SEC / 10000.0;
   #endif
 #endif
 }
