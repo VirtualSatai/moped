@@ -1,7 +1,7 @@
 # Cudd stuff:
 CUDDVER = cudd-2.5.1
-CUDDINCLUDEDIR=$(HOME)/$(CUDDVER)/include
-CUDDLIBDIR=$(HOME)/$(CUDDVER)/lib
+CUDDINCLUDEDIR=../$(CUDDVER)/include
+CUDDLIBDIR=../$(CUDDVER)/lib
 CUDDLIBS=cudd mtr st util epd
 
 # Windows / Posix differences:
